@@ -5,7 +5,7 @@ const transporter = createTransport({
   port: 587,
   auth: {
     user: "shuklasarthak100@gmail.com",
-    pass: "xsmtpsib-4586f4e6a40d30a2394d85a734bf191e391c8f9d5750b8cf5223e4394f7d3477-U6ZDBh2HYFIkOvTw",
+    pass: process.env.SEND_IN_BLUE,
   },
 });
 
@@ -18,11 +18,13 @@ exports.sendEmail = async (email, otp) => {
   };
   return await transporter.sendMail(mailOptions, function (error, info) {
     if (error) {
+      console.log(error);
       return {
         message: "error",
         data: null,
       };
     } else {
+      console.log(info.response);
       return {
         message: "success",
         data: info.response,

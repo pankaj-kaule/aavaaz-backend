@@ -327,16 +327,28 @@ exports.sendOtp = catchAsync(async (req, res, next) => {
   const otp = String(Math.floor(1000 + Math.random() * 9000));
 
   try {
-    const res = await sendEmail(email, otp);
+    const vv = sendEmail(email, otp);
+    const user = await db.verification.findOne({ where: { email: email } });
 
-    const verify = await db.verification.create({
-      email: req.body.email,
-      otp,
-    });
-    res.status(200).json({
-      status: "success",
-      verificationId: verify.id,
-    });
+    if (user) {
+      const isUpdated = await db.verification.update(
+        { otp },
+        { where: { id: user.id } }
+      );
+      res.status(200).json({
+        status: "success",
+        verificationId: user.id,
+      });
+    } else {
+      const verify = await db.verification.create({
+        email: req.body.email,
+        otp,
+      });
+      res.status(200).json({
+        status: "success",
+        verificationId: verify.id,
+      });
+    }
   } catch (error) {
     res.status(400).json({
       status: "error",

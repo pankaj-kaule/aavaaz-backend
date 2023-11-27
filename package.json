@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "nodemon server.js"
   },
   "author": "",
   "license": "ISC",
@@ -29,6 +29,7 @@
     "nodemailer": "^6.9.7",
     "openai": "^4.19.0",
     "sequelize": "^6.35.0",
+    "sib-api-v3-sdk": "^8.5.0",
     "stream": "^0.0.2",
     "wav": "^1.0.2",
     "xss-clean": "^0.1.4"
