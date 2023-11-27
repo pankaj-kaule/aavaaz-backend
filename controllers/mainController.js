@@ -392,15 +392,15 @@ exports.mic = catchAsync(async (req, res, next) => {
     // console.log('aryan123',destinationText);
     destinationText = destinationText.data;
     const destinationAudio = await textToSpeech(destinationText, toLang);
-    console.log("aryan audio", destinationAudio, sourceText, sourceAudio);
+    // console.log("aryan audio", destinationAudio, sourceText, sourceAudio);
 
-    fs.unlink(req.file.path, (err) => {
-      if (err) {
-        console.error("Error deleting file:", err);
-      } else {
-        console.log("File deleted successfully:", req.file.path);
-      }
-    });
+    // fs.unlink(req.file.path, (err) => {
+    //   if (err) {
+    //     console.error("Error deleting file:", err);
+    //   } else {
+    //     console.log("File deleted successfully:", req.file.path);
+    //   }
+    // });
     const randomFilename = crypto.randomBytes(16).toString("hex") + ".mp3";
 
     // Upload the MP3 stream to S3 with the random filename
