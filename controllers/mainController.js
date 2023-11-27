@@ -18,6 +18,7 @@ const s3 = new AWS.S3({
   secretAccessKey: "T8YWecBcqD+kzusp8PBayRmZwNdaCHHVcsaIA4bO",
   region: "us-east-1",
 });
+const { sendEmail } = require("./../index");
 // const ffmpeg = require("fluent-ffmpeg");
 // const { Readable } = require("stream");
 
@@ -324,37 +325,19 @@ const uploadToS3 = async (
 exports.sendOtp = catchAsync(async (req, res, next) => {
   const { email } = req.body;
   const otp = String(Math.floor(1000 + Math.random() * 9000));
-  let data = JSON.stringify({
-    to: `${email}`,
-    subject: "Awaaz OTP",
-    text: `Your OTP is ${otp}`,
-  });
-  console.log(process.env.EMAIL_SERVICE_URL);
-  console.log(data);
-  let config = {
-    method: "post",
-    maxBodyLength: Infinity,
-    url: `${process.env.EMAIL_SERVICE_URL}send-email`,
-    headers: {
-      "Content-Type": "application/json",
-    },
-    data: data,
-  };
-
-  const verify = await db.verification.create({
-    email: req.body.email,
-    otp,
-  });
 
   try {
-    const response = await axios.request(config);
-    console.log(`OTP sent successfully ${otp}`);
+    const res = await sendEmail(email, otp);
+
+    const verify = await db.verification.create({
+      email: req.body.email,
+      otp,
+    });
     res.status(200).json({
       status: "success",
       verificationId: verify.id,
     });
   } catch (error) {
-    console.log(error);
     res.status(400).json({
       status: "error",
     });
@@ -386,9 +369,21 @@ exports.mic = catchAsync(async (req, res, next) => {
     // const buffer = Buffer.from(await destinationAudio.arrayBuffer());
     // await fs.promises.writeFile(speechFile, buffer);
   } else {
+    const sourceAudio = await textToSpeech(fromLang, req.body.sourceText);
+    console.log("aryan123", req.body.sourceText);
     let destinationText = await languageConverter(req.body.sourceText, toLang);
+    // console.log('aryan123',destinationText);
     destinationText = destinationText.data;
     const destinationAudio = await textToSpeech(destinationText, toLang);
+    console.log("aryan audio", destinationAudio, sourceText, sourceAudio);
+
+    fs.unlink(req.file.path, (err) => {
+      if (err) {
+        console.error("Error deleting file:", err);
+      } else {
+        console.log("File deleted successfully:", req.file.path);
+      }
+    });
     const randomFilename = crypto.randomBytes(16).toString("hex") + ".mp3";
 
     // Upload the MP3 stream to S3 with the random filename
@@ -403,6 +398,9 @@ exports.mic = catchAsync(async (req, res, next) => {
       console.log("File uploaded to S3:", s3UploadResult);
       res.status(200).json({
         status: "success",
+        // fromLang,
+        // toLang
+        sourceAudio,
         destinationText,
         destinationAudio: `https://d26kwelnugwjcg.cloudfront.net/${s3UploadResult.key}`,
       });
@@ -428,3 +426,4 @@ exports.feedback = catchAsync(async (req, res, next) => {
     status: "success",
   });
 });
+// xsmtpsib-4586f4e6a40d30a2394d85a734bf191e391c8f9d5750b8cf5223e4394f7d3477-U6ZDBh2HYFIkOvTw
