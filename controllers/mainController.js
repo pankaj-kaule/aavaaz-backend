@@ -381,21 +381,20 @@ exports.mic = catchAsync(async (req, res, next) => {
     // const buffer = Buffer.from(await destinationAudio.arrayBuffer());
     // await fs.promises.writeFile(speechFile, buffer);
   } else {
-    const sourceAudio = await textToSpeech(fromLang, req.body.sourceText);
-    console.log("aryan123", req.body.sourceText);
+    // const sourceAudio = await textToSpeech(req.body.sourceText, fromLang);
+    // console.log("aryan123", req.body.sourceText);
     let destinationText = await languageConverter(req.body.sourceText, toLang);
     // console.log('aryan123',destinationText);
     destinationText = destinationText.data;
     const destinationAudio = await textToSpeech(destinationText, toLang);
-    console.log("aryan audio", destinationAudio, sourceText, sourceAudio);
 
-    fs.unlink(req.file.path, (err) => {
-      if (err) {
-        console.error("Error deleting file:", err);
-      } else {
-        console.log("File deleted successfully:", req.file.path);
-      }
-    });
+    // fs.unlink(req.file.path, (err) => {
+    //   if (err) {
+    //     console.error("Error deleting file:", err);
+    //   } else {
+    //     console.log("File deleted successfully:", req.file.path);
+    //   }
+    // });
     const randomFilename = crypto.randomBytes(16).toString("hex") + ".mp3";
 
     // Upload the MP3 stream to S3 with the random filename
@@ -412,7 +411,7 @@ exports.mic = catchAsync(async (req, res, next) => {
         status: "success",
         // fromLang,
         // toLang
-        sourceAudio,
+        // sourceAudio,
         destinationText,
         destinationAudio: `https://d26kwelnugwjcg.cloudfront.net/${s3UploadResult.key}`,
       });
