@@ -10,15 +10,24 @@ const FormData = require("form-data");
 const AppError = require("./../utils/appError");
 const { QueryTypes, json } = require("sequelize");
 const multer = require("multer");
-const upload = multer({ dest: "uploads/" });
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 const AWS = require("aws-sdk");
 const crypto = require("crypto");
+const azureStorage = require("azure-storage");
 const s3 = new AWS.S3({
   accessKeyId: "AKIAVOC43IYT4MKHIONP",
   secretAccessKey: "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",
   region: "us-east-1",
 });
 const { sendEmail } = require("./../index");
+const azureStorageConnectionString =
+  "DefaultEndpointsProtocol=https;AccountName=estomp3files;AccountKey=q3gCm8saBkIoDfx8A7LQAgDn73tY8W+TyDkBax3W7g3r0HRseNwOyTFbecMIyNJX8hfoMjmOY5Ee+AStMx/+ig==;EndpointSuffix=core.windows.net";
+const blobService = azureStorage.createBlobService(
+  azureStorageConnectionString
+);
+const containerName = "mp3files";
+const storageAccountName = "estomp3files";
 // const ffmpeg = require("fluent-ffmpeg");
 // const { Readable } = require("stream");
 
@@ -212,7 +221,7 @@ const speechToText = async (lang, file) => {
         },
       }
     );
-    // console.log(response);
+    console.log({response});
 
     const data = response.data.text;
 
@@ -357,12 +366,17 @@ exports.sendOtp = catchAsync(async (req, res, next) => {
 });
 
 exports.mic = catchAsync(async (req, res, next) => {
+  let publicUrl = "";
+  const file = req.file;
+  const blobName = file.originalname;
+
   const { fromLang, toLang } = req.body;
   console.log(req.file);
   if (!req.file && !req.body.sourceText) {
     return next(new AppError("Please provide required details", 400));
   } else if (req.file) {
     const sourceText = await speechToText(fromLang, req.file);
+  
     fs.unlink(req.file.path, (err) => {
       if (err) {
         console.error("Error deleting file:", err);
@@ -375,7 +389,7 @@ exports.mic = catchAsync(async (req, res, next) => {
     // console.log('aryan123',destinationText);
     destinationText = destinationText.data;
     const destinationAudio = await textToSpeech(destinationText, toLang);
-    uploadToS3(res, destinationAudio, sourceText, destinationText);
+    // uploadToS3(res, destinationAudio, sourceText, destinationText);
     // const speechFile = path.resolve("./speech.mp3");
 
     // const buffer = Buffer.from(await destinationAudio.arrayBuffer());
@@ -397,30 +411,51 @@ exports.mic = catchAsync(async (req, res, next) => {
     // });
     const randomFilename = crypto.randomBytes(16).toString("hex") + ".mp3";
 
-    // Upload the MP3 stream to S3 with the random filename
-    const s3UploadParams = {
-      Bucket: "stage-bucket-estu",
-      Key: `${randomFilename}`,
-      Body: destinationAudio,
-    };
+    blobService.createBlockBlobFromText(
+      containerName,
+      blobName,
+      file.buffer,
+      { contentType: file.mimetype },
+      (error, result, response) => {
+        if (error) {
+          console.error(error);
+          res.status(500).send("Error uploading file to Azure Storage.");
+        } else {
+          publicUrl = `https://${storageAccountName}.blob.core.windows.net/${containerName}/${blobName}`;
+          res.status(200).send({
+            status: "success",
+            destinationText,
+            destinationAudio: publicUrl,
+          });
+        }
+      }
+    );
 
-    try {
-      const s3UploadResult = await s3.upload(s3UploadParams).promise();
-      console.log("File uploaded to S3:", s3UploadResult);
-      res.status(200).json({
-        status: "success",
-        // fromLang,
-        // toLang
-        // sourceAudio,
-        destinationText,
-        destinationAudio: `https://d26kwelnugwjcg.cloudfront.net/${s3UploadResult.key}`,
-      });
-    } catch (error) {
-      console.error("Error uploading file to S3:", error);
-      res.status(500).json({
-        status: "error",
-      });
-    }
+    //   // Upload the MP3 stream to S3 with the random filename
+    //   const s3UploadParams = {
+    //     Bucket: "stage-bucket-estu",
+    //     Key: `${randomFilename}`,
+    //     Body: destinationAudio,
+    //   };
+
+    //   try {
+
+    //     const s3UploadResult = await s3.upload(s3UploadParams).promise();
+    //     console.log("File uploaded to S3:", s3UploadResult);
+    //     res.status(200).json({
+    //       status: "success",
+    //       // fromLang,
+    //       // toLang
+    //       // sourceAudio,
+    //       destinationText,
+    //       destinationAudio: publicUrl,
+    //     });
+    //   } catch (error) {
+    //     console.error("Error uploading file to S3:", error);
+    //     res.status(500).json({
+    //       status: "error",
+    //     });
+    //   }
   }
 });
 
