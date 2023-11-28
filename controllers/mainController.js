@@ -13,23 +13,13 @@ const multer = require("multer");
 const upload = multer({ dest: "uploads/" });
 const AWS = require("aws-sdk");
 const crypto = require("crypto");
+const ffmpeg = require("fluent-ffmpeg");
 const s3 = new AWS.S3({
   accessKeyId: "AKIAVOC43IYT4MKHIONP",
   secretAccessKey: "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",
   region: "us-east-1",
 });
 const { sendEmail } = require("./../index");
-// const ffmpeg = require("fluent-ffmpeg");
-// const { Readable } = require("stream");
-
-// const ffmpeg = require("fluent-ffmpeg");
-// const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
-
-// // Set the path to the FFmpeg binary
-// ffmpeg.setFfmpegPath(ffmpegPath);
-
-// const axios = require('axios');
-// const { validationResult } = require('express-validator');
 const jwt = require("jsonwebtoken");
 const openai = new OpenAI({
   apiKey: `${process.env.OPENAI_APIKEY}`,
@@ -198,7 +188,7 @@ const speechToText = async (lang, file) => {
   const formData = new FormData();
   formData.append("model", model);
   formData.append("file", fs.createReadStream(filePath), {
-    contentType: "audio/mp3",
+    contentType: file.mimetype,
   });
   console.log("aryan", process.env.OPENAI_APIKEY);
   try {
@@ -358,10 +348,10 @@ exports.sendOtp = catchAsync(async (req, res, next) => {
 
 exports.mic = catchAsync(async (req, res, next) => {
   const { fromLang, toLang } = req.body;
-  console.log(req.file);
   if (!req.file && !req.body.sourceText) {
     return next(new AppError("Please provide required details", 400));
   } else if (req.file) {
+    console.log("sarthak", req.file);
     const sourceText = await speechToText(fromLang, req.file);
     fs.unlink(req.file.path, (err) => {
       if (err) {
@@ -372,29 +362,13 @@ exports.mic = catchAsync(async (req, res, next) => {
     });
     console.log("aryan123", sourceText);
     let destinationText = await languageConverter(sourceText, toLang);
-    // console.log('aryan123',destinationText);
     destinationText = destinationText.data;
     const destinationAudio = await textToSpeech(destinationText, toLang);
     uploadToS3(res, destinationAudio, sourceText, destinationText);
-    // const speechFile = path.resolve("./speech.mp3");
-
-    // const buffer = Buffer.from(await destinationAudio.arrayBuffer());
-    // await fs.promises.writeFile(speechFile, buffer);
   } else {
-    // const sourceAudio = await textToSpeech(req.body.sourceText, fromLang);
-    // console.log("aryan123", req.body.sourceText);
     let destinationText = await languageConverter(req.body.sourceText, toLang);
-    // console.log('aryan123',destinationText);
     destinationText = destinationText.data;
     const destinationAudio = await textToSpeech(destinationText, toLang);
-
-    // fs.unlink(req.file.path, (err) => {
-    //   if (err) {
-    //     console.error("Error deleting file:", err);
-    //   } else {
-    //     console.log("File deleted successfully:", req.file.path);
-    //   }
-    // });
     const randomFilename = crypto.randomBytes(16).toString("hex") + ".mp3";
 
     // Upload the MP3 stream to S3 with the random filename
