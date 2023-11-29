@@ -3,25 +3,24 @@ const User = require("./user");
 const Verification = require("./verification");
 const Feedback = require("./feedback");
 
-const host = "52.5.126.97";
-const dbName = "awaaz";
-const user = "estubank";
-const password = "estubank04";
-const dialect = "mysql";
+const host = process.env.DB_HOST;
+const dbName = process.env.DATABASE_NAME;
+const user = process.env.DB_USER;
+const password = process.env.DB_PASSWORD;
+const dialect = process.env.DB_DIALECT;
 
 // console.log('dbname',dbName);
 
-const sequelize = new Sequelize(dbName, user, password, {
-  host,
-  dialect,
-  pool: { max: 10, min: 0, idle: 10000 },
+const sequelize = new Sequelize('estuSqlDb', 'emaster', 'Estu@1234', {
+  host: 'estymysql.database.windows.net',
+  dialect: 'mssql',
 });
 
 sequelize
   .authenticate()
   .then(() => {
     console.log("Connected with DB");
-  })
+  }) 
   .catch((err) => {
     throw err;
   });
